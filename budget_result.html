@@ -1,0 +1,356 @@
+<!DOCTYPE HTML>
+<html style="height: 100%">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport"
+        content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0" />
+    <meta name="format-detection" content="telephone=no,email=no,date=no,address=no">
+    <title>预算工具</title>
+    <script src="./logic/budget_logic.js"></script>
+    <script type="text/javascript" src="./echarts/echarts.min.js"></script>
+    <script type="text/javascript">
+        var request = {
+            QueryString: function (val) {
+                var uri = window.location.search;
+                var re = new RegExp("" + val + "=([^&?]*)", "ig");
+                return ((uri.match(re)) ? (uri.match(re)[0].substr(val.length + 1)) : null);
+            }
+        }
+
+        //isCommon=1&isFirst=1&hasLoan=1&isSingle=1
+        //&isRelocate=1&houseAge=5&area=&agency=1&lastPrice=2&totalPrice=1
+        var rent = request.QueryString("rent");
+        var adCost = request.QueryString("ad_cost");
+        var employee1 = new Employee(request.QueryString("work_achievement_1"), request.QueryString("recharge_achievement_1"), request.QueryString("salary_1"), request.QueryString("sale_percentage_1"), request.QueryString("recharge_percentage_1"), request.QueryString("total_percentage_1"));
+        var employee2 = new Employee(request.QueryString("work_achievement_2"), request.QueryString("recharge_achievement_2"), request.QueryString("salary_2"), request.QueryString("sale_percentage_2"), request.QueryString("recharge_percentage_2"), request.QueryString("total_percentage_2"));
+        var employee3 = new Employee(request.QueryString("work_achievement_3"), request.QueryString("recharge_achievement_3"), request.QueryString("salary_3"), request.QueryString("sale_percentage_3"), request.QueryString("recharge_percentage_3"), request.QueryString("total_percentage_3"));
+        var budget = new Budget(rent, adCost, request.QueryString("recharge_percent"), [employee1, employee2, employee3]);
+        budget.calculate();
+        // alert("deedTax:" + house.buyer.deedTax);
+        // alert("agencyCost:" + house.buyer.agencyCost);
+        // alert("initPayment:" + house.buyer.initPayment);
+        // alert("incrementTax:" + (house.seller.incrementTax + house.seller.additionalTax));
+        // alert("incomeTax:" + house.seller.incomeTax);
+        //TODO chart show
+    </script>
+    <style>
+        .taxDescription {
+            color: white;
+            font-size: 8;
+        }
+    </style>
+</head>
+
+<body style="height: 100%; margin: 0;background-color: #2E2733">
+    <section class="aui-content-padded" id="description">
+    </section>
+    <div id="container" style="height: 100%"></div>
+    <script type="text/javascript">
+
+        var description = "<div class=\"aui-content taxDescription\"> 店铺收入(" + budget.income + "):<br/>"
+            + "</div><div class=\"aui-content taxDescription\">--零售收入(" + budget.saleIncome + "):<br/>"
+            + "</div><div class=\"aui-content taxDescription\">--充值收入(" + budget.rechargeIncome + "):<br/>"
+            + "</div><div class=\"aui-content taxDescription\"> 店铺支出(" + budget.payOut + "):<br/>"
+            + "</div><div class=\"aui-content taxDescription\">--租金(" + budget.rent + "):<br/>"
+            + "</div><div class=\"aui-content taxDescription\">--推广(" + budget.adCost + "):<br/>"
+            + "</div><div class=\"aui-content taxDescription\">--员工工资(" + budget.employeePayOut + "):<br/>"
+            + "</div><div class=\"aui-content taxDescription\"> 店铺充值(" + budget.rechargeIncome + "):<br/>"
+            + "</div><div class=\"aui-content taxDescription\"> --充值预付款(" + budget.rechargeCost + "):<br/>"
+            + "</div><div class=\"aui-content taxDescription\"> 店铺净利润(" + budget.netIncome + "):<br/>"
+            + "</div><div class=\"aui-content taxDescription\"> --利润率(" + (budget.netIncome/budget.payOut*100).toFixed(2) + "%):<br/>"
+
+        budget.employees.forEach(element => {
+            description += "</div><div class=\"aui-content taxDescription\">员工薪资:" + element.income + "(手工:" + element.workAchievement + " 开卡:" + element.recharegeAchievement + ")<br/>"
+            description += "</div><div class=\"aui-content taxDescription\">--底薪(" + element.salary + "):<br/>"
+            description += "</div><div class=\"aui-content taxDescription\">--手工提成(" + element.saleIncome + "):<br/>"
+            description += "</div><div class=\"aui-content taxDescription\">--开卡提成(" + element.rechargeIncome + "):<br/>"
+            description += "</div><div class=\"aui-content taxDescription\">--全店提成(" + element.globalIncome + "):<br/>"
+        });
+        document.getElementById("description").innerHTML = description;
+
+        // var dom = document.getElementById("container");
+        // var myChart = echarts.init(dom);
+
+        // var bgColor = '#2E2733';
+
+        // var labelFormatter = function (params) {
+        //     return params.name + '(' + params.value.toLocaleString('en-US') + ')';
+        // };
+
+        // var app = {};
+        // option = null;
+        // app.title = '交易税费图';
+        // var data = [{
+        //     name: '总价',
+        //     value: house.totalPay(),
+        //     label: {
+        //         formatter: labelFormatter
+        //     },
+        //     itemStyle: {
+        //         color: '#da0d68'
+        //     },
+        //     children: [{
+        //         name: '卖家',
+        //         value: house.sellerPay(),
+        //         label: {
+        //             formatter: labelFormatter
+        //         },
+        //         itemStyle: {
+        //             color: '#187a2f'
+        //         },
+        //         children: [{
+        //             name: '增值税',
+        //             label: {
+        //                 formatter: labelFormatter
+        //             },
+        //             value: house.seller.incrementTax,
+        //             itemStyle: {
+        //                 color: '#a2b029'
+        //             }
+        //         }, {
+        //             name: '附加税',
+        //             label: {
+        //                 formatter: labelFormatter
+        //             },
+        //             value: house.seller.additionalTax,
+        //             itemStyle: {
+        //                 color: '#718933'
+        //             }
+        //         }, {
+        //             name: '个税',
+        //             label: {
+        //                 formatter: labelFormatter
+        //             },
+        //             value: house.seller.incomeTax,
+        //             itemStyle: {
+        //                 color: '#3aa255'
+        //             }
+        //         }]
+        //     }, {
+        //         name: '买家',
+        //         value: house.buyerPay(),
+        //         label: {
+        //             formatter: labelFormatter
+        //         },
+        //         itemStyle: {
+        //             color: '#ad213e'
+        //         },
+        //         children: [{
+        //             name: '契税',
+        //             label: {
+        //                 formatter: labelFormatter
+        //             },
+        //             value: house.buyer.deedTax,
+        //             itemStyle: {
+        //                 color: '#794752'
+        //             }
+        //         }, {
+        //             name: '中介费',
+        //             label: {
+        //                 formatter: labelFormatter
+        //             },
+        //             value: house.buyer.agencyCost,
+        //             itemStyle: {
+        //                 color: '#cc3d41'
+        //             }
+        //         }, {
+        //             name: '首付',
+        //             label: {
+        //                 formatter: labelFormatter
+        //             },
+        //             value: house.buyer.initPayment,
+        //             itemStyle: {
+        //                 color: '#b14d57'
+        //             }
+        //         }]
+        //     }]
+        // }];
+        // // 指定图表的配置项和数据
+        // option = {
+        //     backgroundColor: bgColor,
+        //     tooltip: {
+        //         trigger: 'item',
+        //         formatter: function (params) {
+        //             // alert('componentType'+params.componentType);
+        //             // alert('seriesType'+params.seriesType);
+        //             // alert('seriesIndex'+params.seriesIndex);
+        //             // alert('seriesName'+params.seriesName);
+        //             // alert('name'+params.name);
+        //             // alert('dataIndex'+params.dataIndex);
+        //             // alert('data'+params.data);
+        //             // alert('color'+params.color);
+        //             // alert('value'+params.value);
+        //             // alert(JSON.stringify(params));
+        //             // console.log(JSON.stringify(params));
+        //             return '房产交易税计算器<br/>' + params.name + '(' + params.value + ')'
+        //         }
+        //     },
+        //     legend: {
+        //         orient: 'horizontal',
+        //         x: 'left',
+        //         y: 'top',
+        //         zlevel: 2,
+        //         formatter: function (name) {
+        //             var value;
+        //             if (name === '总计') {
+        //                 value = name + '(' + house.totalPay().toLocaleString('en-US') + ')';
+        //             }
+        //             else if (name === '买方') {
+        //                 value = name + '(' + house.buyerPay().toLocaleString('en-US') + ')';
+        //             }
+        //             else if (name === '卖方') {
+        //                 value = name + '(' + house.buyerPay().toLocaleString('en-US') + ')';
+        //             }
+        //             else if (name === '契税') {
+        //                 value = name + '(' + house.buyer.deedTax.toLocaleString('en-US') + ')';
+        //             }
+        //             else if (name === '中介费') {
+        //                 value = name + '(' + house.buyer.agencyCost.toLocaleString('en-US') + ')';
+        //             }
+        //             else if (name === '首付') {
+        //                 value = name + '(' + house.buyer.initPayment.toLocaleString('en-US') + ')';
+        //             }
+        //             else if (name === '增值税') {
+        //                 value = name + '(' + house.seller.incrementTax.toLocaleString('en-US') + ')';
+        //             }
+        //             else if (name === '附加税') {
+        //                 value = name + '(' + house.seller.additionalTax.toLocaleString('en-US') + ')';
+        //             }
+        //             else if (name === '个税') {
+        //                 value = name + '(' + house.seller.incomeTax.toLocaleString('en-US') + ')';
+        //             }
+        //             return value;
+        //         },
+        //         data: ['总计', '买家', '卖家', '契税', '中介费', '首付', '增值税', '附加税', '个税']
+        //     },
+        //     series: {
+        //         type: 'sunburst',
+        //         zlevel: 1,
+        //         highlightPolicy: 'descendant',
+        //         data: data,
+        //         center: ['50%', '48%'],
+        //         sort: null,
+        //         itemStyle: {
+        //             borderColor: bgColor,
+        //             borderWidth: 3
+        //         },
+        //         levels: [
+        //             {},
+        //             {
+        //                 r0: '0',
+        //                 r: '20%',
+        //                 label: {
+        //                     rotate: 'tangential',
+        //                     align: 'center',
+        //                     fontSize: 10
+        //                 }
+        //             },
+        //             {
+        //                 r0: '20%',
+        //                 r: '50%',
+        //                 label: {
+        //                     rotate: 'tangential',
+        //                     align: 'center',
+        //                     fontSize: 10
+        //                 }
+        //             },
+        //             {
+        //                 r0: '50%',
+        //                 r: '90%',
+        //                 label: {
+        //                     align: 'left',
+        //                     fontSize: 10
+        //                 }
+        //             }]
+        //     }
+        //     // series: [
+        //     //     {
+        //     //         name: '买卖方',
+        //     //         type: 'pie',
+        //     //         selectedMode: 'single',
+        //     //         radius: [0, '30%'],
+        //     //         z: 2,
+        //     //         label: {
+        //     //             normal: {
+        //     //                 position: 'inner'
+        //     //             }
+        //     //         },
+        //     //         labelLine: {
+        //     //             normal: {
+        //     //                 show: false
+        //     //             }
+        //     //         },
+        //     //         data: [
+        //     //             { value: house.buyerPay(), name: '买方' },
+        //     //             { value: house.sellerPay(), name: '卖方' }
+        //     //         ]
+        //     //     },
+        //     //     {
+        //     //         name: '税费',
+        //     //         type: 'pie',
+        //     //         radius: ['35%', '55%'],
+        //     //         z: 3,
+        //     //         label: {
+        //     //             normal: {
+        //     //                 formatter: '{a|{a}}{abg|}\n{hr|}\n  {b|{b}：}{c}  {per|{d}%}  ',
+        //     //                 backgroundColor: '#eee',
+        //     //                 borderColor: '#aaa',
+        //     //                 borderWidth: 1,
+        //     //                 borderRadius: 4,
+        //     //                 // shadowBlur:3,
+        //     //                 // shadowOffsetX: 2,
+        //     //                 // shadowOffsetY: 2,
+        //     //                 // shadowColor: '#999',
+        //     //                 // padding: [0, 7],
+        //     //                 rich: {
+        //     //                     a: {
+        //     //                         color: '#999',
+        //     //                         lineHeight: 22,
+        //     //                         align: 'center'
+        //     //                     },
+        //     //                     // abg: {
+        //     //                     //     backgroundColor: '#333',
+        //     //                     //     width: '100%',
+        //     //                     //     align: 'right',
+        //     //                     //     height: 22,
+        //     //                     //     borderRadius: [4, 4, 0, 0]
+        //     //                     // },
+        //     //                     hr: {
+        //     //                         borderColor: '#aaa',
+        //     //                         width: '100%',
+        //     //                         borderWidth: 0.5,
+        //     //                         height: 0
+        //     //                     },
+        //     //                     b: {
+        //     //                         fontSize: 16,
+        //     //                         lineHeight: 33
+        //     //                     },
+        //     //                     per: {
+        //     //                         color: '#eee',
+        //     //                         backgroundColor: '#334455',
+        //     //                         padding: [2, 4],
+        //     //                         borderRadius: 2
+        //     //                     }
+        //     //                 }
+        //     //             }
+        //     //         },
+        //     //         data: [
+        //     //             { value: house.buyer.deedTax, name: '契税' },
+        //     //             { value: house.buyer.agencyCost, name: '中介费' },
+        //     //             { value: house.buyer.initPayment, name: '首付' },
+        //     //             { value: house.seller.incrementTax, name: '增值税' },
+        //     //             { value: house.seller.additionalTax, name: '附加税' },
+        //     //             { value: house.seller.incomeTax, name: '个税' }
+        //     //         ]
+        //     //     }
+        //     // ]
+        // };
+
+        // if (option && typeof option === "object") {
+        //     myChart.setOption(option, true);
+        // }
+    </script>
+</body>
+
+</html>
